@@ -11,7 +11,9 @@ def get_tuples(img):
     # cv2.waitKey(0)
 
     row, col = img.shape
-    max_tuples = 0
+
+    local_tops = []
+    local_tops_unique = []
 
     # Iterate through the Image columns, goal is to get the maximum segments
     for j in range(col):
@@ -21,29 +23,37 @@ def get_tuples(img):
             if i != 0 and img[i][j] != img[i - 1][j]:
                 local_max += 1
 
-        if local_max > max_tuples:
-            max_tuples = local_max
+        if not local_tops_unique.__contains__(local_max):
+            local_tops_unique.append(local_max)
+
+        local_tops.append(local_max)
 
     # Init the tuple array with default 0s.
     output_tuples = []
-    for i in range(max_tuples):
-        output_tuples.append([0] * col)
+    tuple_idx_starts: dict = dict()
+
+    for top in local_tops_unique:
+        tuple_idx_starts[top] = len(output_tuples)
+        for i in range(top):
+            output_tuples.append([0] * col)
 
     # Set the exact values for each segment
     for j in range(col):
         tupple_index = 0
         cur_val = 0
         for i in range(row):
+            start_idx = tuple_idx_starts[local_tops[j]]
+
             # same segment, continue
             if i == 0 or img[i][j] == img[i - 1][j]:
                 cur_val += 1
-                output_tuples[tupple_index][j] = cur_val
+                output_tuples[start_idx + tupple_index][j] = cur_val
 
             # new segment, reset values, increment index
             if i != 0 and img[i][j] != img[i - 1][j]:
                 cur_val = 1
                 tupple_index += 1
-                output_tuples[tupple_index][j] = cur_val
+                output_tuples[start_idx + tupple_index][j] = cur_val
 
     return output_tuples
 
@@ -95,7 +105,7 @@ def setSQL(tuples):
 
 
 if __name__ == "__main__":
-    originalImage = cv2.imread('./wordart_samples/2.png')
+    originalImage = cv2.imread('./main.png')
     tuples = get_tuples(originalImage)
     sql_string = setSQL(tuples)
     print(sql_string)
